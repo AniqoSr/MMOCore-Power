@@ -12,10 +12,12 @@ public class PlaceholderAPI extends PlaceholderExpansion {
 
     private final Main plugin;
     private final Config config;
+    private final Data topPlayersData;
 
-    public PlaceholderAPI(Main plugin, Config config) {
+    public PlaceholderAPI(Main plugin, Config config, Data topPlayersData) {
         this.plugin = plugin;
         this.config = config;
+        this.topPlayersData = topPlayersData;
     }
 
     @Override
@@ -75,9 +77,9 @@ public class PlaceholderAPI extends PlaceholderExpansion {
     private List<Map.Entry<OfflinePlayer, Double>> getTopPlayersByPower() {
         Map<OfflinePlayer, Double> playerPowerMap = new HashMap<>();
 
-        for (OfflinePlayer player : Bukkit.getOfflinePlayers()) {
-            double power = calculatePlayerPower(player);
-            playerPowerMap.put(player, power);
+        for (Map.Entry<String, Double> entry : topPlayersData.getTopPlayers().entrySet()) {
+            OfflinePlayer player = Bukkit.getOfflinePlayer(UUID.fromString(entry.getKey()));
+            playerPowerMap.put(player, entry.getValue());
         }
 
         return playerPowerMap.entrySet().stream()
@@ -91,6 +93,8 @@ public class PlaceholderAPI extends PlaceholderExpansion {
 
         totalPower += calculateAttackPower(player);
         totalPower += calculateDefensePower(player);
+
+        topPlayersData.addPlayer(player, totalPower);
 
         return totalPower;
     }
