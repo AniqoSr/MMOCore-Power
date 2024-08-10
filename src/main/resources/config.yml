@@ -1,0 +1,13 @@
+# config.yml
+
+# List of elements to be used in power calculations
+elements:
+  - "fire"
+  - "water"
+  - "earth"
+  - "wind"
+  - "thunder"
+  - "darkness"
+  - "light"
+  - "ice"
+  #- "exampleelement"
