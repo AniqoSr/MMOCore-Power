@@ -1,54 +1,41 @@
 package org.justforfun;
 
+import me.rockyhawk.commandpanels.api.CommandPanelsAPI;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.plugin.java.JavaPlugin;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
-import java.io.*;
-import java.util.logging.Logger;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Logger;
 
 public final class Main extends JavaPlugin implements CommandExecutor, TabCompleter {
 
     private static final Logger LOGGER = Logger.getLogger("MMOCore Power");
     private Config config;
-    private Data topPlayersData;
-    private File dataFile;
+    private PlayerPowerData playerPowerData;
+    private CommandPanelsAPI api;
 
     @Override
     public void onEnable() {
         saveDefaultConfig();
         config = new Config(this);
-        dataFile = new File(getDataFolder(), "data.json");
-        createDataFileIfNotExists();
-        loadTopPlayersData();
-        new PlaceholderAPI(this, config, topPlayersData).register();
-        getCommand("mmocore-power").setExecutor((sender, command, label, args) -> {
-            if (args.length > 0 && args[0].equalsIgnoreCase("reload")) {
-                if (!sender.isOp()) {
-                    sender.sendMessage("You do not have permission to use this command.");
-                    return true;
-                }
-                config.reloadConfig();
-                LOGGER.info("Config reloaded successfully.");
-                sender.sendMessage("Config reloaded successfully.");
-                return true;
-            }
-            return false;
-        });
+        playerPowerData = new PlayerPowerData();
+        new PlaceholderAPI(this, config, playerPowerData).register();
+        new AnotherPlaceholder(this, api).register();
+        getCommand("mmocore-power").setExecutor(this);
         getCommand("mmocore-power").setTabCompleter(this);
+
+        // Schedule the task to run every 20 ticks (1 second)
+        new PowerUpdateTask(this, playerPowerData, config).runTaskTimer(this, 0L, 20L);
         LOGGER.info("Plugin started successfully.");
     }
 
     @Override
     public void onDisable() {
-        saveTopPlayersData();
-        LOGGER.info("Plugin shut down successfully.");
+        LOGGER.info("Plugin stopped successfully.");
     }
 
     @Override
@@ -59,7 +46,6 @@ public final class Main extends JavaPlugin implements CommandExecutor, TabComple
                 return true;
             }
             config.reloadConfig();
-            LOGGER.info("Config reloaded successfully.");
             sender.sendMessage("Config reloaded successfully.");
             return true;
         }
@@ -73,37 +59,5 @@ public final class Main extends JavaPlugin implements CommandExecutor, TabComple
             completions.add("reload");
         }
         return completions;
-    }
-
-    private void createDataFileIfNotExists() {
-        if (!dataFile.exists()) {
-            getDataFolder().mkdirs();
-            try {
-                dataFile.createNewFile();
-                topPlayersData = new Data();
-                saveTopPlayersData();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-    private void loadTopPlayersData() {
-        try (Reader reader = new FileReader(dataFile)) {
-            Gson gson = new Gson();
-            topPlayersData = gson.fromJson(reader, Data.class);
-        } catch (IOException e) {
-            e.printStackTrace();
-            topPlayersData = new Data();
-        }
-    }
-
-    private void saveTopPlayersData() {
-        try (Writer writer = new FileWriter(dataFile)) {
-            Gson gson = new GsonBuilder().setPrettyPrinting().create();
-            gson.toJson(topPlayersData, writer);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 }
